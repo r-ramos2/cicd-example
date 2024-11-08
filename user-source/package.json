@@ -1,0 +1,11 @@
+{
+  "name": "user-service",
+  "version": "1.0.0",
+  "description": "A simple Node.js service",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
