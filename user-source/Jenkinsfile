@@ -1,32 +1,48 @@
 pipeline {
     agent any
+
+    environment {
+        DOCKER_REGISTRY = 'localhost:5000'  // Local registry
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/r-ramos2/cicd-example.git'
+                git 'https://github.com/r-ramos2/cicd-example.git'  // URL for your GitHub repository
             }
         }
-        stage('Build') {
-            steps {
-                sh 'mvn clean package' // For Maven-based Java projects
-            }
-        }
-        stage('Docker Build & Push') {
+
+        stage('Build Docker Image') {
             steps {
                 script {
-                    dockerImage = docker.build("yourdockerhub/user-service:${env.BUILD_ID}")
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        dockerImage.push("${env.BUILD_ID}")
-                        dockerImage.push("latest")
-                    }
+                    // Build Docker image locally
+                    dockerImage = docker.build("user-service:latest")
                 }
             }
         }
+
+        stage('Push to Local Registry') {
+            steps {
+                script {
+                    // Optional: Push image to your local registry (if using one)
+                    sh 'docker tag user-service:latest $DOCKER_REGISTRY/user-service:latest'
+                    sh 'docker push $DOCKER_REGISTRY/user-service:latest'
+                }
+            }
+        }
+
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f kubernetes/deployment.yaml'
+                script {
+                    // Update Kubernetes deployment manifest to use local registry image
+                    // For local registry
+                    sh 'kubectl set image deployment/user-service user-service=$DOCKER_REGISTRY/user-service:latest'
+                    
+                    // Apply Kubernetes manifests for deployment
+                    sh 'kubectl apply -f kubernetes/deployment.yaml'
+                    sh 'kubectl apply -f kubernetes/service.yaml'
+                }
             }
         }
     }
 }
-
