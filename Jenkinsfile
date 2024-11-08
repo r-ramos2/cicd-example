@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS'  // Ensure this matches the configured name in Jenkins Global Tool Configuration
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -10,9 +14,6 @@ pipeline {
 
         stage('Build') {
             steps {
-                // Install NodeJS manually during the pipeline execution
-                sh 'curl -sL https://deb.nodesource.com/setup_16.x | bash -'
-                sh 'apt-get install -y nodejs'
                 sh 'npm install'
             }
         }
