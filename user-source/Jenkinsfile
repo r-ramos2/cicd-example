@@ -1,48 +1,57 @@
 pipeline {
     agent any
 
-    environment {
-        DOCKER_REGISTRY = 'localhost:5000'  // Local registry
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/r-ramos2/cicd-example.git'  // URL for your GitHub repository
+                // Cloning the GitHub repository
+                git branch: 'main', url: 'https://github.com/r-ramos2/cicd-example.git'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build') {
             steps {
+                // Install project dependencies (assumes a Node.js app)
+                sh 'npm install'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Run any tests here (e.g., npm test) - adjust as needed
+                sh 'npm test'
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                // Build Docker image locally
                 script {
-                    // Build Docker image locally
-                    dockerImage = docker.build("user-service:latest")
+                    docker.build("user-service:latest")
                 }
             }
         }
 
-        stage('Push to Local Registry') {
+        stage('Run Docker Container') {
             steps {
+                // Run the Docker container locally
                 script {
-                    // Optional: Push image to your local registry (if using one)
-                    sh 'docker tag user-service:latest $DOCKER_REGISTRY/user-service:latest'
-                    sh 'docker push $DOCKER_REGISTRY/user-service:latest'
+                    docker.image("user-service:latest").run("-d -p 8080:8080")
                 }
             }
         }
+    }
 
-        stage('Deploy to Kubernetes') {
-            steps {
-                script {
-                    // Update Kubernetes deployment manifest to use local registry image
-                    // For local registry
-                    sh 'kubectl set image deployment/user-service user-service=$DOCKER_REGISTRY/user-service:latest'
-                    
-                    // Apply Kubernetes manifests for deployment
-                    sh 'kubectl apply -f kubernetes/deployment.yaml'
-                    sh 'kubectl apply -f kubernetes/service.yaml'
-                }
-            }
+    post {
+        always {
+            // Clean up Docker container if needed
+            sh 'docker rm -f $(docker ps -aq --filter ancestor=user-service:latest) || true'
+        }
+        success {
+            echo 'Build, test, and deployment stages completed successfully!'
+        }
+        failure {
+            echo 'Build or deployment failed. Check logs for details.'
         }
     }
 }
