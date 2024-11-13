@@ -1,62 +1,43 @@
 pipeline {
     agent any
 
-    environment {
-        // Example environment variable
-        TEST_ENV_VAR = 'CI_TEST'
-    }
-
     stages {
-        stage('Checkout') {
+        stage('Install NGINX') {
             steps {
-                // Checkout code from GitHub (ensure you have a repo URL)
-                git branch: 'main', url: 'https://github.com/r-ramos2/cicd-example.git'
+                // Install NGINX using Homebrew
+                sh 'brew install nginx'
             }
         }
 
-        stage('Build') {
+        stage('Start NGINX') {
             steps {
-                // Example of a simple build process (e.g., install dependencies)
-                echo 'Building the project...'
-                sh 'echo "Building the project..."'
+                // Start the NGINX service
+                sh 'brew services start nginx'
             }
         }
 
-        stage('Test') {
+        stage('Configure NGINX') {
             steps {
-                // Run tests (example using a shell command)
-                echo 'Running tests...'
-                sh 'echo "Running tests..."'
-            }
-        }
-
-        stage('Archive Results') {
-            steps {
-                // Archive test results (for example, a test result file or log)
-                echo 'Archiving results...'
-                archiveArtifacts artifacts: '**/test-*.log', allowEmptyArchive: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                // Example deployment step
-                echo 'Deploying application...'
-                sh 'echo "Deploying to the environment..."'
+                // Optional: Modify NGINX configuration as needed
+                script {
+                    def nginxConf = '/opt/homebrew/etc/nginx/nginx.conf'
+                    sh "echo '# Custom NGINX Configuration' >> ${nginxConf}"
+                    // Add any other configuration commands here if needed
+                }
             }
         }
     }
 
     post {
         always {
-            // Cleanup steps, if needed
-            echo 'Cleaning up...'
+            // Clean up by stopping NGINX
+            sh 'brew services stop nginx'
         }
         success {
-            echo 'Pipeline succeeded!'
+            echo 'NGINX installation and startup completed successfully!'
         }
         failure {
-            echo 'Pipeline failed. Please check the logs.'
+            echo 'NGINX setup failed. Check logs for details.'
         }
     }
 }
