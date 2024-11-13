@@ -1,18 +1,11 @@
-# Use official Node.js image as a parent image
-FROM node:14-slim
+# Use the official NGINX image
+FROM nginx:latest
 
-# Set the working directory in the container
-WORKDIR /usr/src/app
+# Copy a custom NGINX configuration file, if needed (optional step)
+# COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy package.json and index.js to the working directory
-COPY package.json ./
-COPY index.js ./
+# Expose port 80 for the web server
+EXPOSE 80
 
-# Install dependencies (in this case, just confirming with npm install)
-RUN npm install
-
-# Expose port 8080
-EXPOSE 8080
-
-# Run the app when the container starts
-CMD ["npm", "start"]
+# Start NGINX
+CMD ["nginx", "-g", "daemon off;"]
