@@ -1,39 +1,61 @@
 pipeline {
     agent any
 
+    environment {
+        NGINX_CONF = 'nginx.conf' // Path to your custom NGINX config file
+    }
+
     stages {
-        stage('Install NGINX') {
+        stage('Checkout') {
             steps {
-                sh 'brew install nginx'
+                git branch: 'main', url: 'https://github.com/r-ramos2/cicd-example.git'
             }
         }
 
-        stage('Configure NGINX') {
+        stage('Install NGINX') {
             steps {
                 script {
-                    // Update NGINX configuration to listen on port 8081
-                    def nginxConf = '/opt/homebrew/etc/nginx/nginx.conf'
-                    sh "sed -i '' 's/listen 8080;/listen 8081;/' ${nginxConf}"
+                    if (isUnix()) {
+                        // Ensure Homebrew is installed if on macOS
+                        sh '''
+                        if ! command -v brew &>/dev/null; then
+                            echo "Homebrew not found, installing..."
+                            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                        fi
+                        brew install nginx
+                        '''
+                    } else {
+                        echo "Unsupported OS for Homebrew install. Please use another method."
+                    }
                 }
             }
         }
 
         stage('Start NGINX') {
             steps {
-                sh 'brew services start nginx'
+                script {
+                    // Start NGINX
+                    sh '''
+                    sudo nginx
+                    '''
+                }
             }
         }
 
-        stage('Verify NGINX') {
+        stage('Configure NGINX') {
             steps {
-                // Check if NGINX is responding on the new port 8081
                 script {
-                    def response = sh(script: "curl -o /dev/null -s -w '%{http_code}' http://localhost:8081", returnStdout: true).trim()
-                    if (response == '200') {
-                        echo 'NGINX is running successfully on port 8081!'
-                    } else {
-                        error 'NGINX is not running as expected on port 8081.'
-                    }
+                    // Optionally copy a custom nginx.conf
+                    echo "Configuring NGINX..."
+                    sh '''
+                    if [ -f "$NGINX_CONF" ]; then
+                        echo "Copying custom NGINX configuration..."
+                        sudo cp $NGINX_CONF /usr/local/etc/nginx/nginx.conf
+                        sudo nginx -s reload
+                    else
+                        echo "No custom NGINX config found, using default."
+                    fi
+                    '''
                 }
             }
         }
@@ -41,14 +63,8 @@ pipeline {
 
     post {
         always {
-            // Stop NGINX after the pipeline completes
-            sh 'brew services stop nginx'
-        }
-        success {
-            echo 'NGINX installation, configuration, and verification completed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed. Check the logs for details.'
+            echo 'Cleaning up...'
+            sh 'brew services stop nginx || echo "NGINX is not running"'
         }
     }
 }
