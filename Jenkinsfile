@@ -2,27 +2,27 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Install NGINX') {
             steps {
-                // Cloning the GitHub repository (modify URL if needed)
-                git branch: 'main', url: 'https://github.com/r-ramos2/cicd-example.git'
+                // Install NGINX using Homebrew
+                sh 'brew install nginx'
             }
         }
 
-        stage('Docker Build') {
+        stage('Start NGINX') {
             steps {
-                // Build the Docker image for NGINX
-                script {
-                    docker.build("nginx-service:latest")
-                }
+                // Start the NGINX service
+                sh 'brew services start nginx'
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Configure NGINX') {
             steps {
-                // Run the NGINX Docker container locally
+                // Optional: Modify NGINX configuration as needed
                 script {
-                    docker.image("nginx-service:latest").run("-d -p 80:80")
+                    def nginxConf = '/opt/homebrew/etc/nginx/nginx.conf'
+                    sh "echo '# Custom NGINX Configuration' >> ${nginxConf}"
+                    // Add any other configuration commands here if needed
                 }
             }
         }
@@ -30,14 +30,14 @@ pipeline {
 
     post {
         always {
-            // Clean up Docker container if needed
-            sh 'docker rm -f $(docker ps -aq --filter ancestor=nginx-service:latest) || true'
+            // Clean up by stopping NGINX
+            sh 'brew services stop nginx'
         }
         success {
-            echo 'NGINX build and deployment stages completed successfully!'
+            echo 'NGINX installation and startup completed successfully!'
         }
         failure {
-            echo 'Build or deployment failed. Check logs for details.'
+            echo 'NGINX setup failed. Check logs for details.'
         }
     }
 }
