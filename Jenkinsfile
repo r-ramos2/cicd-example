@@ -1,54 +1,62 @@
 pipeline {
     agent any
 
+    environment {
+        // Example environment variable
+        TEST_ENV_VAR = 'CI_TEST'
+    }
+
     stages {
-        stage('Install NGINX') {
+        stage('Checkout') {
             steps {
-                sh 'brew install nginx'
+                // Checkout code from GitHub (ensure you have a repo URL)
+                git branch: 'main', url: 'https://github.com/r-ramos2/cicd-example.git'
             }
         }
 
-        stage('Configure NGINX') {
+        stage('Build') {
             steps {
-                script {
-                    // Update NGINX configuration to listen on port 8081
-                    def nginxConf = '/opt/homebrew/etc/nginx/nginx.conf'
-                    sh "sed -i '' 's/listen 8080;/listen 8081;/' ${nginxConf}"
-                }
+                // Example of a simple build process (e.g., install dependencies)
+                echo 'Building the project...'
+                sh 'echo "Building the project..."'
             }
         }
 
-        stage('Start NGINX') {
+        stage('Test') {
             steps {
-                sh 'brew services start nginx'
+                // Run tests (example using a shell command)
+                echo 'Running tests...'
+                sh 'echo "Running tests..."'
             }
         }
 
-        stage('Verify NGINX') {
+        stage('Archive Results') {
             steps {
-                // Check if NGINX is responding on the new port 8081
-                script {
-                    def response = sh(script: "curl -o /dev/null -s -w '%{http_code}' http://localhost:8081", returnStdout: true).trim()
-                    if (response == '200') {
-                        echo 'NGINX is running successfully on port 8081!'
-                    } else {
-                        error 'NGINX is not running as expected on port 8081.'
-                    }
-                }
+                // Archive test results (for example, a test result file or log)
+                echo 'Archiving results...'
+                archiveArtifacts artifacts: '**/test-*.log', allowEmptyArchive: true
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                // Example deployment step
+                echo 'Deploying application...'
+                sh 'echo "Deploying to the environment..."'
             }
         }
     }
 
     post {
         always {
-            // Stop NGINX after the pipeline completes
-            sh 'brew services stop nginx'
+            // Cleanup steps, if needed
+            echo 'Cleaning up...'
         }
         success {
-            echo 'NGINX installation, configuration, and verification completed successfully!'
+            echo 'Pipeline succeeded!'
         }
         failure {
-            echo 'Pipeline failed. Check the logs for details.'
+            echo 'Pipeline failed. Please check the logs.'
         }
     }
 }
