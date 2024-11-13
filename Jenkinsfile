@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NGINX_CONF = 'nginx.conf' // Path to your custom NGINX config file
+        NGINX_CONF = 'nginx.conf'  // Path to your custom NGINX config file
     }
 
     stages {
@@ -34,7 +34,7 @@ pipeline {
         stage('Start NGINX') {
             steps {
                 script {
-                    // Start NGINX
+                    // Start NGINX service
                     sh '''
                     sudo nginx
                     '''
